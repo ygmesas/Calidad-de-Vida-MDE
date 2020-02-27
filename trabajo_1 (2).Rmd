@@ -1,0 +1,809 @@
+---
+title: "practica"
+output: html_document
+---
+
+
+
+
+#el esta parte vamos a exportar todas las librerias que necesitemos para el trabajo.
+
+```{r setup, include=FALSE}
+library(rgdal)
+library(leaflet)
+library(readxl)
+library(ggplot2)
+library(modeest)
+library(fmsb)
+library(readr)
+library(tmap)
+library(sf)
+
+```
+
+#el esta parte vamos a traer la base de datos de encuestados
+
+```{r }
+
+encuesta_calidad_vida <- read_delim("D:/Universidad/tAE/trabajo_01/encuesta_calidad_vida.csv", 
+                                    ";", escape_double = FALSE, trim_ws = TRUE)
+
+```
+
+
+#Esta base de dato es para poder saber los barrios de medellin
+
+
+
+#vamos a observar la dimension que trae la base de datos de encuestado
+
+```{r pressure, echo=FALSE}
+dim(encuesta_calidad_vida)
+```
+
+
+
+#Vamos a empezar seleccionar varias dimensiones, la primera va hacer educacion con las variables.
+P_6: Comunas de Medellin
+
+p_7:Codigo del barrio o vereda
+
+p_15:sexo
+
+P_18:Años cumplidos
+
+P_20:Estado civil actual
+
+P_35:Sabe leer y escribir mas de un párrafo?
+
+P_36:¿Actualmente estudia? (asiste a salacuna, guarderia, preescolar, escuela, colegio, tecnico, tecnologica o universidad)
+
+P_37:Estudio durante este año?
+
+P_38:¿Cual es la causa principal por la que se salio de estudiar este año?
+
+P_39:Nivel de estudio y grado que iba a realizar o que estudio. Nivel
+
+P_40:Nivel de estudio y grado que iba a realizar o que estudio. Grado
+
+P_41:¿Estudio el año inmediatamente anterior?
+
+P_42:¿Cual fue la principal causa por la que no pudo continuar sus estudios?
+
+P_43:¿cual medio de transporte utiliza predominantemente para dirigirse a su centro educativo?
+
+P_44:¿Cuanto tiempo tarda en llegar a su centro educativo?
+
+P_45:ultimo nivel de estudio aprobado (titulo)
+
+P_46:¿Grado o año en curso que estaba estudiando cuando se retiro, que esta estudiando actualmente  o que estudio? Nivel cursando
+
+P_48:area del conocimiento en la que obtuvo el titulo
+
+P_49:El caracter del ESTABLECIMIENTO EDUCATIVO (escuela, colegio, universidad u otra institución) en donde estudia o estudio el ultimo curso o grado, es:
+
+estrato:¿que nivel de estrato es?
+
+
+```{r}
+educacion <- encuesta_calidad_vida [,c("encuesta_calidad.comuna","encuesta_calidad.p_6"
+  ,"encuesta_calidad.barrio","encuesta_calidad.p_7","encuesta_calidad.estrato"
+  ,"encuesta_calidad.hogar","encuesta_calidad.persona","encuesta_calidad.p_15"
+  ,"encuesta_calidad.p_18", "encuesta_calidad.p_20","encuesta_calidad.p_35"
+  ,"encuesta_calidad.p_36","encuesta_calidad.p_37","encuesta_calidad.p_38","encuesta_calidad.p_39"
+  ,"encuesta_calidad.p_40","encuesta_calidad.p_41","encuesta_calidad.p_42","encuesta_calidad.p_43"
+  ,"encuesta_calidad.p_44","encuesta_calidad.p_45","encuesta_calidad.p_46","encuesta_calidad.p_48"
+  ,"encuesta_calidad.p_49")]
+```
+
+```{r}
+names(educacion) <- c("comuna","comuna_numerica","barrio","barrio_numerica","estrato"
+                      ,"calidad_hogar","cantidad_persona","sexo","edad","estado_civil"
+                      ,"sabe_leer","actualmente_estudia","estudio_este_ano","causa_de_salio"
+                      ,"nivel_estudio","nivel_estudio_Grado","estudio_ano_anterior"
+                      ,"principal_causa_no_continuar_estudios","transporte_dirigirse_educativo"
+                      ,"tiempo_llegada_educativo","ultimo_estudio_aprobado"
+                      ,"ano_curso_estudiando_actualmente_Nivel_cursando"
+                      ,"area_obtuvo_titulo","donde_estudio_curso_grado")
+```
+
+
+
+#Ahora podemos ver como esta organizando la base de datos
+
+```{r}
+summary(educacion)
+```
+
+#vamos analizar cada variable a ver como se estan comportando y organizarla.
+
+```{r}
+table(educacion$encuesta_calidad.p_39)
+```
+
+
+#podemos observar que los valor.
+-77:Otra
+-88:No aplica
+-98:No sabe
+-99:No responde. 
+Nos afecta muchos el nuestros valores, por eso esa variables la vamos a volver NA, para que R no la tomen y despues la organizamos el otras formas.
+
+
+/H<-data.flame(educacion$encuesta_calidad.p_15[(educacion$encuesta_calidad.p_15==1) |educacion$encuesta_calidad.p_15==2)])
+M<-matrix(educacion$encuesta_calidad.p_15[(educacion$encuesta_calidad.p_15==2)])
+encuesta_calidad.sexo <- matrix(H,M)*/--------probando codigo
+
+*/P_20:Estado civil actual*/
+
+```{r}
+educacion$estado_civil[(educacion$estado_civil==-88)]<-NA
+
+```
+*/P_37:Estudio durante este año?*/
+
+```{r}
+educacion$estudio_este_ano [(educacion$estudio_este_ano ==-88)]<-NA
+```
+
+P_38:¿Cual es la causa principal por la que se salio de estudiar este año?
+```{r}
+
+educacion$causa_de_salio[(educacion$causa_de_salio==-88)|
+                                  (educacion$causa_de_salio==-99) ]<-NA
+```
+
+P_39:Nivel de estudio y grado que iba a realizar o que estudio. Nivel
+```{r}
+
+educacion$nivel_estudio    [(educacion$nivel_estudio    ==-88) |
+                                  (educacion$nivel_estudio    ==-99) |
+                                (educacion$nivel_estudio    ==-98)]<-NA
+```
+
+P_40:Nivel de estudio y grado que iba a realizar o que estudio. Grado
+```{r}
+
+educacion$nivel_estudio_Grado[(educacion$nivel_estudio_Grado==-88) |
+                                  (educacion$nivel_estudio_Grado==-99)|
+                                  educacion$nivel_estudio_Grado==-98]<-NA
+```
+
+P_41:¿Estudio el año inmediatamente anterior?
+```{r}
+
+educacion$estudio_ano_anterior [(educacion$estudio_ano_anterior ==-88)]<-NA
+```
+
+P_42:¿Cual fue la principal causa por la que no pudo continuar sus estudios?
+```{r}
+
+educacion$principal_causa_no_continuar_estudios [(educacion$principal_causa_no_continuar_estudios==-88)|
+                                  (educacion$principal_causa_no_continuar_estudios==-99)|
+                                  educacion$principal_causa_no_continuar_estudios==-98]<-NA
+```
+
+P_43:¿cual medio de transporte utiliza predominantemente para dirigirse a su centro educativo?
+```{r}
+
+educacion$transporte_dirigirse_educativo[(educacion$transporte_dirigirse_educativo==-77)|
+                                (educacion$transporte_dirigirse_educativo==-88) |
+                                  (educacion$transporte_dirigirse_educativo==-99)]<-NA
+```
+
+P_44:¿Cuanto tiempo tarda en llegar a su centro educativo?
+```{r}
+
+educacion$tiempo_llegada_educativo [(educacion$tiempo_llegada_educativo ==-88) |
+                                  (educacion$tiempo_llegada_educativo ==-99)|
+                                  educacion$tiempo_llegada_educativo ==-98]<-NA
+```
+P_45:ultimo nivel de estudio aprobado (titulo)
+
+```{r}
+
+educacion$ultimo_estudio_aprobado[(educacion$ultimo_estudio_aprobado==-98) |
+                                  (educacion$ultimo_estudio_aprobado==-99) ]<-NA
+
+
+```
+P_46:¿Grado o año en curso que estaba estudiando cuando se retiro, que esta estudiando actualmente  o que estudio? Nivel cursando
+
+```{r}
+
+educacion$ ano_curso_estudiando_actualmente_Nivel_cursando[
+  (educacion$ ano_curso_estudiando_actualmente_Nivel_cursando==-98) |
+  (educacion$ ano_curso_estudiando_actualmente_Nivel_cursando==-99) ]<-NA
+```
+
+P_48:area del conocimiento en la que obtuvo el titulo
+
+```{r}
+
+educacion$area_obtuvo_titulo [(educacion$area_obtuvo_titulo ==-88) |
+                                  (educacion$area_obtuvo_titulo ==-99)|
+                                  (educacion$area_obtuvo_titulo ==-98) ]<-NA
+```
+
+
+P_49:El caracter del ESTABLECIMIENTO EDUCATIVO (escuela, colegio, universidad u otra institución) en donde estudia o estudio el ultimo curso o grado, es:
+```{r}
+
+
+educacion$donde_estudio_curso_grado[(educacion$donde_estudio_curso_grado==-88)|
+                                  (educacion$donde_estudio_curso_grado==-99)|
+                                  (educacion$donde_estudio_curso_grado==-98)]<-NA
+```
+
+
+```{r}
+summary(educacion)
+```
+
+```{r}
+R<- educacion
+
+M<- educacion
+
+p_20media <- mean(R$estado_civil, na.rm = TRUE)
+R$estado_civil[is.na(R$estado_civil)] <- p_20media
+
+p_37media <- mean(R$estudio_este_ano , na.rm = TRUE)
+R$estudio_este_ano [is.na(R$estudio_este_ano)] <- p_37media
+
+p_38media <- mean(R$causa_de_salio, na.rm = TRUE)
+R$causa_de_salio[is.na(R$causa_de_salio)] <- p_38media
+
+p_39media <- mean(R$nivel_estudio, na.rm = TRUE)
+R$nivel_estudio[is.na(R$nivel_estudio)] <- p_39media
+
+p_40media <- mean(R$nivel_estudio_Grado , na.rm = TRUE)
+R$nivel_estudio_Grado [is.na(R$nivel_estudio_Grado )] <- p_40media
+
+p_41media <- mean(R$estudio_ano_anterior , na.rm = TRUE)
+R$estudio_ano_anterior [is.na(R$estudio_ano_anterior )] <- p_41media
+
+p_42media <- mean(R$principal_causa_no_continuar_estudios , na.rm = TRUE)
+R$principal_causa_no_continuar_estudios [is.na(R$principal_causa_no_continuar_estudios )] <- p_42media
+
+p_43media <- mean(R$transporte_dirigirse_educativo , na.rm = TRUE)
+R$transporte_dirigirse_educativo [is.na(R$transporte_dirigirse_educativo )] <- p_43media
+
+p_44media <- mean(R$tiempo_llegada_educativo, na.rm = TRUE)
+R$tiempo_llegada_educativo[is.na(R$tiempo_llegada_educativo)] <- p_44media
+
+p_45media <- mean(R$ultimo_estudio_aprobado, na.rm = TRUE)
+R$ultimo_estudio_aprobado[is.na(R$ultimo_estudio_aprobado)] <- p_45media
+
+p_46media <- mean(R$ ano_curso_estudiando_actualmente_Nivel_cursando , na.rm = TRUE)
+R$ ano_curso_estudiando_actualmente_Nivel_cursando [is.na(R$ano_curso_estudiando_actualmente_Nivel_cursando)]<- p_46media
+
+p_48media <- mean(R$area_obtuvo_titulo , na.rm = TRUE)
+R$area_obtuvo_titulo [is.na(R$area_obtuvo_titulo )] <- p_48media
+
+p_49media <- mean(R$donde_estudio_curso_grado, na.rm = TRUE)
+R$donde_estudio_curso_grado[is.na(R$donde_estudio_curso_grado)] <- p_49media
+```
+
+
+```{r}
+ggplot(educacion, aes(edad)) +
+  geom_histogram(color="black", ) +
+  facet_wrap(~ comuna) +
+ggtitle('Conjunto de edades') 
+ 
+```
+
+
+```{r}
+ggplot(educacion, aes(estado_civil)) +
+  geom_histogram(color="black" ) +
+  facet_wrap(~comuna) +
+ggtitle('Conjunto de edades') 
+```
+
+```{r}
+ggplot(educacion, aes(sabe_leer    )) +
+  geom_histogram(color="black", ) +
+  facet_wrap(~comuna) +
+ggtitle('Conjunto de edades') 
+```
+
+```{r}
+ggplot(educacion, aes(actualmente_estudia )) +
+  geom_histogram(color="black", ) +
+  facet_wrap(~ comuna) +
+ggtitle('Conjunto de edades') 
+```
+
+```{r}
+ggplot(educacion, aes(estudio_este_ano )) +
+  geom_histogram(color="black", ) +
+  facet_wrap(~comuna) +
+ggtitle('Conjunto de edades') 
+```
+
+
+```{r}
+ggplot(educacion, aes(causa_de_salio   )) +
+  geom_histogram(color="black", ) +
+  facet_wrap(~comuna) +
+ggtitle('Conjunto de edades') 
+```
+
+
+```{r}
+ggplot(educacion, aes(nivel_estudio    )) +
+  geom_histogram(color="black", ) +
+  facet_wrap(~comuna) +
+ggtitle('Conjunto de edades') 
+```
+
+
+```{r}
+ggplot(educacion, aes(nivel_estudio_Grado)) +
+  geom_histogram(color="black", ) +
+  facet_wrap(~comuna) +
+ggtitle('Conjunto de edades') 
+```
+
+
+```{r}
+ggplot(educacion, aes(estudio_ano_anterior )) +
+  geom_histogram(color="black", ) +
+  facet_wrap(~comuna) +
+ggtitle('Conjunto de edades') 
+```
+
+```{r}
+ggplot(educacion, aes(principal_causa_no_continuar_estudios )) +
+  geom_histogram(color="black", ) +
+  facet_wrap(~ comuna) +
+ggtitle('Conjunto de edades') 
+```
+
+```{r}
+ggplot(educacion, aes(transporte_dirigirse_educativo)) +
+  geom_histogram(color="black", ) +
+  facet_wrap(~comuna) +
+ggtitle('Conjunto de edades') 
+```
+
+
+```{r}
+ggplot(educacion, aes(tiempo_llegada_educativo )) +
+  geom_histogram(color="black", ) +
+  facet_wrap(~comuna) +
+ggtitle('Conjunto de edades') 
+```
+
+
+```{r}
+ggplot(educacion, aes(ultimo_estudio_aprobado )) +
+  geom_histogram(color="black", ) +
+  facet_wrap(~comuna) +
+ggtitle('Conjunto de edades') 
+```
+
+
+```{r}
+ggplot(educacion, aes(ano_curso_estudiando_actualmente_Nivel_cursando)) +
+  geom_histogram(color="black", ) +
+  facet_wrap(~comuna) +
+ggtitle('Conjunto de edades') 
+```
+
+
+```{r}
+ggplot(educacion, aes(area_obtuvo_titulo )) +
+  geom_histogram(color="black", ) +
+  facet_wrap(~comuna) +
+ggtitle('Conjunto de edades') 
+```
+
+```{r}
+
+```
+
+
+
+```{r}
+R<- R[,-c(1,2,3,4)]
+
+R<- scale(R)
+
+set.seed(1234)
+wss<-(nrow(R)-1)*sum(apply(R,2,var))
+for(i in 1:22) wss[i]<-sum(kmeans(R,centers = i)$withinss)
+
+
+```
+
+```{r}
+ggplot() + geom_point(aes(x = 1:22, y = wss), color = 'blue') + 
+  geom_line(aes(x = 1:22, y = wss), color = 'blue') + 
+  ggtitle("Método del Codo") + 
+  xlab('Cantidad de Centroides k') + 
+  ylab('WSS')
+```
+
+
+```{r}
+mycluster <- kmeans(R, 7, nstart = 5, iter.max = 30000)
+mycluster
+```
+
+
+```{r}
+radar_plot_center<-function(centers,n){
+  dat<- as.data.frame(t(mycluster$centers[n,]))
+  dat
+  dat2<-rbind(rep(5,10), rep(-1.5,10), dat)
+  dat2
+  radarchart(dat2)  
+}
+par(mfrow=c(2,4))
+for(n in 1:7){
+radar_plot_center(mycluster$centers,n)
+}
+
+```
+
+```{r}
+dendrogram <- hclust(dist(educacion, method = 'euclidean'), method = 'ward.D')
+ggdendrogram(dendrogram, rotate = FALSE, labels = FALSE, theme_dendro = TRUE) + 
+  labs(title = "Dendrograma")
+```
+
+---
+title: "gastos_hogar"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(rgdal)
+library(leaflet)
+library(readxl)
+library(ggplot2)
+library(modeest)
+library(fmsb)
+```
+#Vamos a empezar seleccionar varias dimensiones, la primera va hacer educacion con las variables.
+
+P_6: Comunas de Medellin
+
+p_7:Codigo del barrio o vereda
+
+p_15:sexo
+
+P_18:Años cumplidos
+
+p_232:A cuanto asciende el total de gastos mensuales de este hogar?
+
+p_233:cual cantidad del ingreso mensual destina este hogar a: Pensiones escolares
+
+p_234:cual cantidad del ingreso mensual destina este hogar a: Transporte escolar
+
+p_235:cual cantidad del ingreso mensual destina este hogar a: Alimentos
+
+p_236:cual cantidad del ingreso mensual destina este hogar a: Bebidas y tabaco
+
+p_237:cual cantidad del ingreso mensual destina este hogar a: Combustibles
+
+p_238:cual cantidad del ingreso mensual destina este hogar a: Servicios medicos
+
+p_239:cual cantidad del ingreso mensual destina este hogar a: Medicamentos
+
+p_240:cual cantidad del ingreso mensual destina este hogar a: Servicios Publicos
+
+p_241:cual cantidad del ingreso mensual destina este hogar a: Transporte y comunicaciones
+
+p_242:cual cantidad del ingreso mensual destina este hogar a: Esparcimiento y diversiones
+
+p_243:cual cantidad del ingreso mensual destina este hogar a: InterÃ©ses y otros gastos financieros
+
+p_244:Cantidad del ingreso total mensual destinado por el hogar
+
+```{r cars}
+
+gastoshogares <- encuesta_calidad_vida [,c("encuesta_calidad.comuna","encuesta_calidad.p_6"
+  ,"encuesta_calidad.barrio","encuesta_calidad.p_7","encuesta_calidad.estrato"
+  ,"encuesta_calidad.persona","encuesta_calidad.p_15"
+  ,"encuesta_calidad.p_18", "encuesta_calidad.p_232","encuesta_calidad.p_233"
+  ,"encuesta_calidad.p_234","encuesta_calidad.p_235","encuesta_calidad.p_236","encuesta_calidad.p_237"
+  ,"encuesta_calidad.p_238","encuesta_calidad.p_239","encuesta_calidad.p_240","encuesta_calidad.p_241"
+  ,"encuesta_calidad.p_242","encuesta_calidad.p_243","encuesta_calidad.p_244")]
+```
+
+#renombrar las variables para entendera mejor
+
+
+```{r}
+names(gastoshogares) <- c("comuna","comuna_numerica","barrio","barrio_numerica","estrato"
+                      ,"cantidad_persona","sexo","edad","gastos_mensuales_hogar"
+                      ,"ingreso_hogar_Pensiones_escolares","ingreso_hogar_Transporte_escolar"
+                      ,"ingreso_hogar_Alimentos","ingreso_hogar_tabaco",
+                      "ingreso_hogar_Combustibles","ingreso_hogar_medicos"
+                      ,"ingreso_hogar_Medicamentos","ingreso_hogar_Servicios_Publicos"
+                      ,"ingreso_hogar_Transporte","ingreso_hogar_Esparcimiento"
+                      ,"ingreso_hogar_gastos_financieros","ingreso_hogar")
+```
+
+
+```{r pressure, echo=FALSE}
+summary(gastoshogares)
+```
+
+```{r}
+table(gastoshogares$ingreso_hogar_Transporte_escolar)
+```
+
+
+
+```{r}
+gastoshogares$gastos_mensuales_hogar[(gastoshogares$gastos_mensuales_hogar==-98)|
+                                  (gastoshogares$gastos_mensuales_hogar==-99) ]<-NA
+
+gastoshogares$ingreso_hogar_Pensiones_escolares [(gastoshogares$ingreso_hogar_Pensiones_escolares ==-98)|
+                                  (gastoshogares$ingreso_hogar_Pensiones_escolares ==-99) ]<-NA
+
+gastoshogares$ingreso_hogar_Transporte_escolar [(gastoshogares$ingreso_hogar_Transporte_escolar ==-98)|
+                                  (gastoshogares$ingreso_hogar_Transporte_escolar ==-99)|
+                                  (gastoshogares$ingreso_hogar_Transporte_escolar ==99999999) ]<-NA  
+
+gastoshogares$ingreso_hogar_Alimentos[(gastoshogares$ingreso_hogar_Alimentos==-98)|
+                                  (gastoshogares$ingreso_hogar_Alimentos==-99) ]<-NA
+
+gastoshogares$ingreso_hogar_tabaco [(gastoshogares$ingreso_hogar_tabaco ==-98)|
+                                  (gastoshogares$ingreso_hogar_tabaco ==-99) ]<-NA
+
+gastoshogares$ingreso_hogar_Combustibles [(gastoshogares$ingreso_hogar_Combustibles ==-88) |
+                                          (gastoshogares$ingreso_hogar_Combustibles ==-98)|
+                                  (gastoshogares$ingreso_hogar_Combustibles ==-99) ]<-NA
+
+gastoshogares$ingreso_hogar_medicos [(gastoshogares$ingreso_hogar_medicos ==-98)|
+                                  (gastoshogares$ingreso_hogar_medicos ==-99) ]<-NA
+
+gastoshogares$ingreso_hogar_Medicamentos[(gastoshogares$ingreso_hogar_Medicamentos==-98)|
+                                  (gastoshogares$ingreso_hogar_Medicamentos==-99) ]<-NA
+
+gastoshogares$ingreso_hogar_Servicios_Publicos [(gastoshogares$ingreso_hogar_Servicios_Publicos ==-98)|
+                                  (gastoshogares$ingreso_hogar_Servicios_Publicos ==-99) ]<-NA
+
+gastoshogares$ingreso_hogar_Transporte [(gastoshogares$ingreso_hogar_Transporte ==-98)|
+                                  (gastoshogares$ingreso_hogar_Transporte ==-99) ]<-NA
+
+gastoshogares$ingreso_hogar_Esparcimiento[(gastoshogares$ingreso_hogar_Esparcimiento  ==-98)|
+                                  (gastoshogares$ingreso_hogar_Esparcimiento  ==-99) ]<-NA
+
+gastoshogares$ingreso_hogar_gastos_financieros  [(gastoshogares$ingreso_hogar_gastos_financieros  ==-98)|
+                                  (gastoshogares$ingreso_hogar_gastos_financieros  ==-99) ]<-NA
+
+gastoshogares$ingreso_hogar[(gastoshogares$ingreso_hogar ==-98)|
+                        (gastoshogares$ingreso_hogar==-99)|
+                        (gastoshogares$ingreso_hogar==-1089)|
+                        (gastoshogares$ingreso_hogar==-792)|
+                        (gastoshogares$ingreso_hogar==-784)|
+                        (gastoshogares$ingreso_hogar==-297)|
+                        (gastoshogares$ingreso_hogar==-296)|
+                        (gastoshogares$ingreso_hogar==-295)|
+                        (gastoshogares$ingreso_hogar==-294)|
+                        (gastoshogares$ingreso_hogar==-198)|
+                        (gastoshogares$ingreso_hogar==-197)|
+                        (gastoshogares$ingreso_hogar==-196) ]<-NA
+```
+
+```{r}
+summary(gastoshogares)
+```
+
+```{r}
+M<-gastoshogares
+
+p_2media <- mean(M$gastos_mensuales_hogar, na.rm = TRUE)
+M$gastos_mensuales_hogar[is.na(M$gastos_mensuales_hogar)] <- p_2media
+
+p_7media <- mean(M$ingreso_hogar_Pensiones_escolares, na.rm = TRUE)
+M$ingreso_hogar_Pensiones_escolares[is.na(M$ingreso_hogar_Pensiones_escolares)] <- p_7media
+
+p_8media <- mean(M$ingreso_hogar_Transporte_escolar , na.rm = TRUE)
+M$ingreso_hogar_Transporte_escolar [is.na(M$ingreso_hogar_Transporte_escolar )] <- p_8media
+
+p_9media <- mean(M$ingreso_hogar_Alimentos, na.rm = TRUE)
+M$ingreso_hogar_Alimentos[is.na(M$ingreso_hogar_Alimentos)] <- p_9media
+
+p_0media <- mean(M$ingreso_hogar_tabaco  , na.rm = TRUE)
+M$ingreso_hogar_tabaco  [is.na(M$ingreso_hogar_tabaco  )] <- p_0media
+
+p_1media <- mean(M$ingreso_hogar_Combustibles  , na.rm = TRUE)
+M$ingreso_hogar_Combustibles  [is.na(M$ingreso_hogar_Combustibles  )] <- p_1media
+
+p_media <- mean(M$ingreso_hogar_medicos  , na.rm = TRUE)
+M$ingreso_hogar_medicos  [is.na(M$ingreso_hogar_medicos  )] <- p_media
+
+p_3media <- mean(M$ingreso_hogar_Medicamentos , na.rm = TRUE)
+M$ingreso_hogar_Medicamentos [is.na(M$ingreso_hogar_Medicamentos )] <- p_3media
+
+p_4media <- mean(M$ingreso_hogar_Servicios_Publicos , na.rm = TRUE)
+M$ingreso_hogar_Servicios_Publicos [is.na(M$ingreso_hogar_Servicios_Publicos )] <- p_4media
+
+p_5media <- mean(M$ingreso_hogar_Transporte , na.rm = TRUE)
+M$ingreso_hogar_Transporte [is.na(M$ingreso_hogar_Transporte )] <- p_5media
+
+p_6media <- mean(M$ingreso_hogar_Esparcimiento , na.rm = TRUE)
+M$ingreso_hogar_Esparcimiento [is.na(M$ingreso_hogar_Esparcimiento)]<- p_6media
+
+p_18media <- mean(M$ingreso_hogar_gastos_financieros  , na.rm = TRUE)
+M$ingreso_hogar_gastos_financieros  [is.na(M$ingreso_hogar_gastos_financieros  )] <- p_18media
+
+p_19media <- mean(M$ingreso_hogar, na.rm = TRUE)
+M$ingreso_hogar[is.na(M$ingreso_hogar)] <- p_19media
+```
+
+```{r}
+summary(M)
+```
+
+```{r}
+ggplot(M, aes(ingreso_hogar)) +
+  geom_histogram(color="black", ) +
+  facet_wrap(~ comuna) +
+ggtitle('Conjunto de ingreso del hogar')
+```
+
+```{r}
+ggplot(M, aes(x=ingreso_hogar      , y=gastos_mensuales_hogar)) + 
+  geom_point()+
+facet_wrap(~ comuna)
+```
+
+
+```{r}
+ggplot(gastoshogares, aes(gastos_mensuales_hogar )) +
+  geom_histogram(color="black", ) +
+  facet_wrap(~comuna) +
+ggtitle('Conjunto de edades') 
+```
+
+```{r}
+ggplot(gastoshogares, aes(ingreso_hogar_Pensiones_escolares  )) +
+  geom_histogram(color="black", ) +
+  facet_wrap(~comuna) +
+ggtitle('Conjunto de edades') 
+```
+
+```{r}
+ggplot(gastoshogares, aes(ingreso_hogar_Transporte_escolar  )) +
+  geom_histogram(color="black", ) +
+  facet_wrap(~comuna) +
+ggtitle('Conjunto de edades') 
+```
+
+```{r}
+ggplot(gastoshogares, aes(ingreso_hogar_Alimentos )) +
+  geom_histogram(color="black", ) +
+  facet_wrap(~comuna) +
+ggtitle('Conjunto de edades') 
+```
+
+
+```{r}
+ggplot(gastoshogares, aes(ingreso_hogar_tabaco  )) +
+  geom_histogram(color="black", ) +
+  facet_wrap(~comuna) +
+ggtitle('Conjunto de edades') 
+```
+
+
+```{r}
+ggplot(gastoshogares, aes(ingreso_hogar_Combustibles  )) +
+  geom_histogram(color="black", ) +
+  facet_wrap(~comuna) +
+ggtitle('Conjunto de edades') 
+```
+
+```{r}
+ggplot(gastoshogares, aes(ingreso_hogar_medicos  )) +
+  geom_histogram(color="black", ) +
+  facet_wrap(~comuna) +
+ggtitle('Conjunto de edades') 
+```
+
+```{r}
+ggplot(gastoshogares, aes(ingreso_hogar_Medicamentos  )) +
+  geom_histogram(color="black", ) +
+  facet_wrap(~comuna) +
+ggtitle('Conjunto de edades') 
+```
+
+
+```{r}
+ggplot(gastoshogares, aes(ingreso_hogar_Servicios_Publicos   )) +
+  geom_histogram(color="black", ) +
+  facet_wrap(~comuna) +
+ggtitle('Conjunto de edades') 
+```
+
+```{r}
+ggplot(gastoshogares, aes(ingreso_hogar_Transporte    )) +
+  geom_histogram(color="black", ) +
+  facet_wrap(~comuna) +
+ggtitle('Conjunto de edades') 
+```
+
+```{r}
+ggplot(gastoshogares, aes(ingreso_hogar_Esparcimiento   )) +
+  geom_histogram(color="black", ) +
+  facet_wrap(~comuna) +
+ggtitle('Conjunto de edades') 
+```
+
+```{r}
+ggplot(gastoshogares, aes(ingreso_hogar_gastos_financieros    )) +
+  geom_histogram(color="black", ) +
+  facet_wrap(~comuna) +
+ggtitle('Conjunto de edades') 
+```
+
+#Empezamos a hacerle la agrupacion con k-mean
+
+```{r}
+M<- M[,-c(1,2,3,4)]
+
+M<- scale(M)
+
+set.seed(1234)
+wcss<-(nrow(M)-1)*sum(apply(M,2,var))
+for(i in 1:6) wcss[i]<-sum(kmeans(M,centers = i)$withinss)
+```
+
+```{r}
+ggplot() + geom_point(aes(x = 1:6, y = wcss), color = 'blue') + 
+  geom_line(aes(x = 1:6, y = wcss), color = 'blue') + 
+  ggtitle("Método del Codo") + 
+  xlab('Cantidad de Centroides k') + 
+  ylab('WCSS')
+```
+
+```{r}
+mcluster <- kmeans(M, 3, nstart = 5, iter.max = 30000)
+mcluster
+```
+
+```{r}
+
+```
+
+```{r}
+radar_plot_cent<-function(centers,n){
+  da<- as.data.frame(t(mcluster$centers[n,]))
+  da
+  da<-rbind(rep(5,10), rep(-1.5,5), da)
+  da
+  radarchart(da)  
+}
+par(mfrow=c(2,4))
+for(n in 1:3){
+radar_plot_cent(mcluster$centers,n)
+}
+```
+
+```{r}
+
+medellin12 <- st_read("Barrio_Vereda.shp")
+class(medellin)
+names(medellin)
+summary(medellin)
+```
+
+```{r}
+tm_shape(medellin)
+tm_shape(medellin) + tm_polygons()
+
+```
+
+```{r}
+tm_shape(medellin) +
+  tm_fill('CODIGO',palette = terrain.colors(10))
+```
+
