@@ -1,0 +1,333 @@
+---
+title: "gastos_hogar"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(rgdal)
+library(leaflet)
+library(readxl)
+library(ggplot2)
+library(modeest)
+library(fmsb)
+```
+#Vamos a empezar seleccionar varias dimensiones, la primera va hacer educacion con las variables.
+
+P_6: Comunas de Medellin
+
+p_7:Codigo del barrio o vereda
+
+p_15:sexo
+
+P_18:Años cumplidos
+
+p_232:A cuanto asciende el total de gastos mensuales de este hogar?
+
+p_233:cual cantidad del ingreso mensual destina este hogar a: Pensiones escolares
+
+p_234:cual cantidad del ingreso mensual destina este hogar a: Transporte escolar
+
+p_235:cual cantidad del ingreso mensual destina este hogar a: Alimentos
+
+p_236:cual cantidad del ingreso mensual destina este hogar a: Bebidas y tabaco
+
+p_237:cual cantidad del ingreso mensual destina este hogar a: Combustibles
+
+p_238:cual cantidad del ingreso mensual destina este hogar a: Servicios medicos
+
+p_239:cual cantidad del ingreso mensual destina este hogar a: Medicamentos
+
+p_240:cual cantidad del ingreso mensual destina este hogar a: Servicios Publicos
+
+p_241:cual cantidad del ingreso mensual destina este hogar a: Transporte y comunicaciones
+
+p_242:cual cantidad del ingreso mensual destina este hogar a: Esparcimiento y diversiones
+
+p_243:cual cantidad del ingreso mensual destina este hogar a: InterÃ©ses y otros gastos financieros
+
+p_244:Cantidad del ingreso total mensual destinado por el hogar
+
+```{r cars}
+
+gastoshogares <- encuesta_calidad_vida [,c("encuesta_calidad.comuna","encuesta_calidad.p_6"
+  ,"encuesta_calidad.barrio","encuesta_calidad.p_7","encuesta_calidad.estrato"
+  ,"encuesta_calidad.persona","encuesta_calidad.p_15"
+  ,"encuesta_calidad.p_18", "encuesta_calidad.p_232","encuesta_calidad.p_233"
+  ,"encuesta_calidad.p_234","encuesta_calidad.p_235","encuesta_calidad.p_236","encuesta_calidad.p_237"
+  ,"encuesta_calidad.p_238","encuesta_calidad.p_239","encuesta_calidad.p_240","encuesta_calidad.p_241"
+  ,"encuesta_calidad.p_242","encuesta_calidad.p_243","encuesta_calidad.p_244")]
+```
+
+#renombrar las variables para entendera mejor
+
+
+```{r}
+names(gastoshogares) <- c("comuna","comuna_numerica","barrio","barrio_numerica","estrato"
+                      ,"cantidad_persona","sexo","edad","gastos_mensuales_hogar"
+                      ,"ingreso_hogar_Pensiones_escolares","ingreso_hogar_Transporte_escolar"
+                      ,"ingreso_hogar_Alimentos","ingreso_hogar_tabaco",
+                      "ingreso_hogar_Combustibles","ingreso_hogar_medicos"
+                      ,"ingreso_hogar_Medicamentos","ingreso_hogar_Servicios_Publicos"
+                      ,"ingreso_hogar_Transporte","ingreso_hogar_Esparcimiento"
+                      ,"ingreso_hogar_gastos_financieros","ingreso_hogar")
+```
+
+
+```{r pressure, echo=FALSE}
+summary(gastoshogares)
+```
+
+```{r}
+table(gastoshogares$ingreso_hogar_Transporte_escolar)
+```
+
+
+
+```{r}
+gastoshogares$gastos_mensuales_hogar[(gastoshogares$gastos_mensuales_hogar==-98)|
+                                  (gastoshogares$gastos_mensuales_hogar==-99) ]<-NA
+
+gastoshogares$ingreso_hogar_Pensiones_escolares [(gastoshogares$ingreso_hogar_Pensiones_escolares ==-98)|
+                                  (gastoshogares$ingreso_hogar_Pensiones_escolares ==-99) ]<-NA
+
+gastoshogares$ingreso_hogar_Transporte_escolar [(gastoshogares$ingreso_hogar_Transporte_escolar ==-98)|
+                                  (gastoshogares$ingreso_hogar_Transporte_escolar ==-99)|
+                                  (gastoshogares$ingreso_hogar_Transporte_escolar ==99999999) ]<-NA  
+
+gastoshogares$ingreso_hogar_Alimentos[(gastoshogares$ingreso_hogar_Alimentos==-98)|
+                                  (gastoshogares$ingreso_hogar_Alimentos==-99) ]<-NA
+
+gastoshogares$ingreso_hogar_tabaco [(gastoshogares$ingreso_hogar_tabaco ==-98)|
+                                  (gastoshogares$ingreso_hogar_tabaco ==-99) ]<-NA
+
+gastoshogares$ingreso_hogar_Combustibles [(gastoshogares$ingreso_hogar_Combustibles ==-88) |
+                                          (gastoshogares$ingreso_hogar_Combustibles ==-98)|
+                                  (gastoshogares$ingreso_hogar_Combustibles ==-99) ]<-NA
+
+gastoshogares$ingreso_hogar_medicos [(gastoshogares$ingreso_hogar_medicos ==-98)|
+                                  (gastoshogares$ingreso_hogar_medicos ==-99) ]<-NA
+
+gastoshogares$ingreso_hogar_Medicamentos[(gastoshogares$ingreso_hogar_Medicamentos==-98)|
+                                  (gastoshogares$ingreso_hogar_Medicamentos==-99) ]<-NA
+
+gastoshogares$ingreso_hogar_Servicios_Publicos [(gastoshogares$ingreso_hogar_Servicios_Publicos ==-98)|
+                                  (gastoshogares$ingreso_hogar_Servicios_Publicos ==-99) ]<-NA
+
+gastoshogares$ingreso_hogar_Transporte [(gastoshogares$ingreso_hogar_Transporte ==-98)|
+                                  (gastoshogares$ingreso_hogar_Transporte ==-99) ]<-NA
+
+gastoshogares$ingreso_hogar_Esparcimiento[(gastoshogares$ingreso_hogar_Esparcimiento  ==-98)|
+                                  (gastoshogares$ingreso_hogar_Esparcimiento  ==-99) ]<-NA
+
+gastoshogares$ingreso_hogar_gastos_financieros  [(gastoshogares$ingreso_hogar_gastos_financieros  ==-98)|
+                                  (gastoshogares$ingreso_hogar_gastos_financieros  ==-99) ]<-NA
+
+gastoshogares$ingreso_hogar[(gastoshogares$ingreso_hogar ==-98)|
+                        (gastoshogares$ingreso_hogar==-99)|
+                        (gastoshogares$ingreso_hogar==-1089)|
+                        (gastoshogares$ingreso_hogar==-792)|
+                        (gastoshogares$ingreso_hogar==-784)|
+                        (gastoshogares$ingreso_hogar==-297)|
+                        (gastoshogares$ingreso_hogar==-296)|
+                        (gastoshogares$ingreso_hogar==-295)|
+                        (gastoshogares$ingreso_hogar==-294)|
+                        (gastoshogares$ingreso_hogar==-198)|
+                        (gastoshogares$ingreso_hogar==-197)|
+                        (gastoshogares$ingreso_hogar==-196) ]<-NA
+```
+
+```{r}
+summary(gastoshogares)
+```
+
+```{r}
+M<-gastoshogares
+
+p_2media <- mean(M$gastos_mensuales_hogar, na.rm = TRUE)
+M$gastos_mensuales_hogar[is.na(M$gastos_mensuales_hogar)] <- p_2media
+
+p_7media <- mean(M$ingreso_hogar_Pensiones_escolares, na.rm = TRUE)
+M$ingreso_hogar_Pensiones_escolares[is.na(M$ingreso_hogar_Pensiones_escolares)] <- p_7media
+
+p_8media <- mean(M$ingreso_hogar_Transporte_escolar , na.rm = TRUE)
+M$ingreso_hogar_Transporte_escolar [is.na(M$ingreso_hogar_Transporte_escolar )] <- p_8media
+
+p_9media <- mean(M$ingreso_hogar_Alimentos, na.rm = TRUE)
+M$ingreso_hogar_Alimentos[is.na(M$ingreso_hogar_Alimentos)] <- p_9media
+
+p_0media <- mean(M$ingreso_hogar_tabaco  , na.rm = TRUE)
+M$ingreso_hogar_tabaco  [is.na(M$ingreso_hogar_tabaco  )] <- p_0media
+
+p_1media <- mean(M$ingreso_hogar_Combustibles  , na.rm = TRUE)
+M$ingreso_hogar_Combustibles  [is.na(M$ingreso_hogar_Combustibles  )] <- p_1media
+
+p_media <- mean(M$ingreso_hogar_medicos  , na.rm = TRUE)
+M$ingreso_hogar_medicos  [is.na(M$ingreso_hogar_medicos  )] <- p_media
+
+p_3media <- mean(M$ingreso_hogar_Medicamentos , na.rm = TRUE)
+M$ingreso_hogar_Medicamentos [is.na(M$ingreso_hogar_Medicamentos )] <- p_3media
+
+p_4media <- mean(M$ingreso_hogar_Servicios_Publicos , na.rm = TRUE)
+M$ingreso_hogar_Servicios_Publicos [is.na(M$ingreso_hogar_Servicios_Publicos )] <- p_4media
+
+p_5media <- mean(M$ingreso_hogar_Transporte , na.rm = TRUE)
+M$ingreso_hogar_Transporte [is.na(M$ingreso_hogar_Transporte )] <- p_5media
+
+p_6media <- mean(M$ingreso_hogar_Esparcimiento , na.rm = TRUE)
+M$ingreso_hogar_Esparcimiento [is.na(M$ingreso_hogar_Esparcimiento)]<- p_6media
+
+p_18media <- mean(M$ingreso_hogar_gastos_financieros  , na.rm = TRUE)
+M$ingreso_hogar_gastos_financieros  [is.na(M$ingreso_hogar_gastos_financieros  )] <- p_18media
+
+p_19media <- mean(M$ingreso_hogar, na.rm = TRUE)
+M$ingreso_hogar[is.na(M$ingreso_hogar)] <- p_19media
+```
+
+```{r}
+summary(M)
+```
+
+```{r}
+ggplot(M, aes(ingreso_hogar)) +
+  geom_histogram(color="black", ) +
+  facet_wrap(~ comuna) +
+ggtitle('Conjunto de ingreso del hogar')
+```
+
+```{r}
+ggplot(M, aes(x=ingreso_hogar      , y=gastos_mensuales_hogar)) + 
+  geom_point()+
+facet_wrap(~ comuna)
+```
+
+
+```{r}
+ggplot(gastoshogares, aes(gastos_mensuales_hogar )) +
+  geom_histogram(color="black", ) +
+  facet_wrap(~comuna) +
+ggtitle('Conjunto de edades') 
+```
+
+```{r}
+ggplot(gastoshogares, aes(ingreso_hogar_Pensiones_escolares  )) +
+  geom_histogram(color="black", ) +
+  facet_wrap(~comuna) +
+ggtitle('Conjunto de edades') 
+```
+
+```{r}
+ggplot(gastoshogares, aes(ingreso_hogar_Transporte_escolar  )) +
+  geom_histogram(color="black", ) +
+  facet_wrap(~comuna) +
+ggtitle('Conjunto de edades') 
+```
+
+```{r}
+ggplot(gastoshogares, aes(ingreso_hogar_Alimentos )) +
+  geom_histogram(color="black", ) +
+  facet_wrap(~comuna) +
+ggtitle('Conjunto de edades') 
+```
+
+
+```{r}
+ggplot(gastoshogares, aes(ingreso_hogar_tabaco  )) +
+  geom_histogram(color="black", ) +
+  facet_wrap(~comuna) +
+ggtitle('Conjunto de edades') 
+```
+
+
+```{r}
+ggplot(gastoshogares, aes(ingreso_hogar_Combustibles  )) +
+  geom_histogram(color="black", ) +
+  facet_wrap(~comuna) +
+ggtitle('Conjunto de edades') 
+```
+
+```{r}
+ggplot(gastoshogares, aes(ingreso_hogar_medicos  )) +
+  geom_histogram(color="black", ) +
+  facet_wrap(~comuna) +
+ggtitle('Conjunto de edades') 
+```
+
+```{r}
+ggplot(gastoshogares, aes(ingreso_hogar_Medicamentos  )) +
+  geom_histogram(color="black", ) +
+  facet_wrap(~comuna) +
+ggtitle('Conjunto de edades') 
+```
+
+
+```{r}
+ggplot(gastoshogares, aes(ingreso_hogar_Servicios_Publicos   )) +
+  geom_histogram(color="black", ) +
+  facet_wrap(~comuna) +
+ggtitle('Conjunto de edades') 
+```
+
+```{r}
+ggplot(gastoshogares, aes(ingreso_hogar_Transporte    )) +
+  geom_histogram(color="black", ) +
+  facet_wrap(~comuna) +
+ggtitle('Conjunto de edades') 
+```
+
+```{r}
+ggplot(gastoshogares, aes(ingreso_hogar_Esparcimiento   )) +
+  geom_histogram(color="black", ) +
+  facet_wrap(~comuna) +
+ggtitle('Conjunto de edades') 
+```
+
+```{r}
+ggplot(gastoshogares, aes(ingreso_hogar_gastos_financieros    )) +
+  geom_histogram(color="black", ) +
+  facet_wrap(~comuna) +
+ggtitle('Conjunto de edades') 
+```
+
+#Empezamos a hacerle la agrupacion con k-mean
+
+```{r}
+M<- M[,-c(1,2,3,4)]
+
+M<- scale(M)
+
+set.seed(1234)
+wcss<-(nrow(M)-1)*sum(apply(M,2,var))
+for(i in 1:6) wcss[i]<-sum(kmeans(M,centers = i)$withinss)
+```
+
+```{r}
+ggplot() + geom_point(aes(x = 1:6, y = wcss), color = 'blue') + 
+  geom_line(aes(x = 1:6, y = wcss), color = 'blue') + 
+  ggtitle("Método del Codo") + 
+  xlab('Cantidad de Centroides k') + 
+  ylab('WCSS')
+```
+
+```{r}
+mcluster <- kmeans(M, 3, nstart = 5, iter.max = 30000)
+mcluster
+```
+
+```{r}
+
+```
+
+```{r}
+radar_plot_cent<-function(centers,n){
+  da<- as.data.frame(t(mcluster$centers[n,]))
+  da
+  da<-rbind(rep(5,10), rep(-1.5,5), da)
+  da
+  radarchart(da)  
+}
+par(mfrow=c(2,4))
+for(n in 1:3){
+radar_plot_cent(mcluster$centers,n)
+}
+```
+
