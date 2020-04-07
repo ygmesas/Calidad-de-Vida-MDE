@@ -1,0 +1,283 @@
+---
+title: "salud"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(rgdal)
+library(leaflet)
+library(readxl)
+library(ggplot2)
+library(modeest)
+library(fmsb)
+library(dplyr)
+library(wesanderson)
+library(factoextra)
+```
+
+
+```{r pressure, echo=FALSE}
+#names (encuesta_calidad_vida)[9] = "encuesta_calidad.fecha"
+```
+
+"encuesta_calidad.estrato",
+
+```{r}
+salud <- encuesta_calidad_vida [,c("encuesta_calidad.barrio","encuesta_calidad.p_7",
+                                       "encuesta_calidad.fecha","encuesta_calidad.p_17",
+                                       "encuesta_calidad.p_15","encuesta_calidad.p_332",
+                                        "encuesta_calidad.p_335","encuesta_calidad.p_342")]
+
+salud <- filter(salud, encuesta_calidad.fecha == "2018")
+
+names(salud) <- c("barrio","barrio_numerica","fecha","jefe_del_hogar","sexo"
+                    ,"califica_medico_general","califica_medico_especialista"
+                   ,"califica_estado_de_salud")
+
+salud <- filter(salud, jefe_del_hogar ==1)
+
+salud$califica_medico_general <- as.numeric(salud$califica_medico_general)
+
+salud$califica_medico_especialista  <- as.numeric(salud$califica_medico_especialista )
+
+salud$califica_estado_de_salud <- as.numeric(salud$califica_estado_de_salud)
+
+
+
+summary(salud)
+```
+
+```{r}
+salud$califica_medico_general[(salud$califica_medico_general == -88)]<-NA
+
+salud$califica_medico_especialista [(salud$califica_medico_especialista  == -88)]<-NA
+
+
+summary(salud)
+```
+
+
+
+```{r}
+salud <- salud[!is.na(salud$califica_medico_general),]
+salud <- salud[!is.na(salud$califica_medico_especialista),]
+summary(salud)
+```
+
+
+```{r}
+califi_salid <- salud %>% 
+  group_by(barrio,califica_medico_general,califica_medico_especialista,
+           califica_estado_de_salud) %>% 
+  summarise(num_per = n())
+
+califi_salid1 <-califi_salid
+
+califi_salid1 <- califi_salid1[,c(-1)]
+
+rownames(califi_salid1) = paste0(califi_salid$barrio, 1:nrow(califi_salid))
+```
+
+
+```{r}
+ggplot(califi_salid1, aes(califica_medico_general, num_per, 
+                          fill = califica_medico_general)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Frecuencia de ultimo estudio aprobado",
+       x = "estudio",
+       y = "Número de estudio") +
+  scale_fill_gradient(low = "#65B1F7", high = "#132B43") +
+  scale_y_continuous(breaks = seq(0, 1500, 100))
+```
+
+
+
+```{r}
+ggplot(califi_salid1, aes(califica_medico_especialista, num_per, 
+                         fill = califica_medico_especialista)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Frecuencia de ultimo estudio aprobado",
+       x = "estudio",
+       y = "Número de estudio") +
+  scale_fill_gradient(low = "#65B1F7", high = "#132B43") +
+  scale_y_continuous(breaks = seq(0, 1500, 100))
+```
+
+
+```{r}
+ggplot(califi_salid1, aes(califica_estado_de_salud, num_per, 
+                         fill = califica_estado_de_salud)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Frecuencia de ultimo estudio aprobado",
+       x = "estudio",
+       y = "Número de estudio") +
+  scale_fill_gradient(low = "#65B1F7", high = "#132B43") +
+  scale_y_continuous(breaks = seq(0, 1500, 100))
+```
+
+```{r}
+salud1 <- salud %>% 
+  filter( califica_estado_de_salud == 1) %>%
+  group_by(malo = califica_estado_de_salud) %>% 
+  summarise(num_per = n())
+salud2 <- salud %>% 
+  filter( califica_medico_especialista == 1) %>%
+  group_by(malo = califica_medico_especialista) %>% 
+  summarise(num_per = n())
+salud3 <- salud %>% 
+  filter( califica_medico_general == 1) %>%
+  group_by(malo = califica_medico_general) %>% 
+  summarise(num_per = n())
+
+salud1$malo<- gsub("1","estado de salud",salud1$malo)
+salud2$malo<- gsub("1","calificacion medico",salud2$malo)
+salud3$malo<- gsub("1","cali medico Espe",salud3$malo)
+
+salud1 <- rbind(salud1, salud2)
+salud1 <- rbind(salud1, salud3)
+
+
+ggplot(salud1, aes(malo, num_per, fill = num_per)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Frecuencia de ultimo estudio aprobado",
+       x = "estudio",
+       y = "Número de estudio") +
+  scale_fill_gradient(low = "#65B1F7", high = "red") +
+  scale_y_continuous(breaks = seq(0, 150, 10))
+
+```
+
+```{r}
+salud1 <- salud %>% 
+  filter( califica_estado_de_salud == 2) %>%
+  group_by(Regular = califica_estado_de_salud) %>% 
+  summarise(num_per = n())
+salud2 <- salud %>% 
+  filter( califica_medico_especialista == 2) %>%
+  group_by(Regular = califica_medico_especialista) %>% 
+  summarise(num_per = n())
+salud3 <- salud %>% 
+  filter( califica_medico_general == 2) %>%
+  group_by(Regular = califica_medico_general) %>% 
+  summarise(num_per = n())
+
+salud1$Regular<- gsub("2","estado de salud",salud1$Regular)
+salud2$Regular<- gsub("2","calificacion medico",salud2$Regular)
+salud3$Regular<- gsub("2","cali medico Espe",salud3$Regular)
+
+salud1 <- rbind(salud1, salud2)
+salud1 <- rbind(salud1, salud3)
+
+
+ggplot(salud1, aes(Regular, num_per, fill = num_per)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Frecuencia de ultimo estudio aprobado",
+       x = "estudio",
+       y = "Número de estudio") +
+  scale_fill_gradient(low = "#65B1F7", high = "red") +
+  scale_y_continuous(breaks = seq(0, 800, 50))
+
+```
+
+```{r}
+salud1 <- salud %>% 
+  filter( califica_estado_de_salud == 3) %>%
+  group_by(Bueno = califica_estado_de_salud) %>% 
+  summarise(num_per = n())
+salud2 <- salud %>% 
+  filter( califica_medico_especialista == 3) %>%
+  group_by(Bueno = califica_medico_especialista) %>% 
+  summarise(num_per = n())
+salud3 <- salud %>% 
+  filter( califica_medico_general == 3) %>%
+  group_by(Bueno = califica_medico_general) %>% 
+  summarise(num_per = n())
+
+salud1$Bueno<- gsub("3","estado de salud",salud1$Bueno)
+salud2$Bueno<- gsub("3","calificacion medico",salud2$Bueno)
+salud3$Bueno<- gsub("3","cali medico Espe",salud3$Bueno)
+
+salud1 <- rbind(salud1, salud2)
+salud1 <- rbind(salud1, salud3)
+
+
+ggplot(salud1, aes(Bueno, num_per, fill = num_per)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Frecuencia de ultimo estudio aprobado",
+       x = "estudio",
+       y = "Número de estudio") +
+  scale_fill_gradient(low = "#65B1F7", high = "red") +
+  scale_y_continuous(breaks = seq(0, 1400, 100))
+
+```
+
+```{r}
+salud_1 <- salud %>% 
+  filter( califica_estado_de_salud == 4) %>%
+  group_by(Excelente = califica_estado_de_salud) %>% 
+  summarise(num_per = n())
+salud_2 <- salud %>% 
+  filter( califica_medico_especialista == 4) %>%
+  group_by(Excelente = califica_medico_especialista) %>% 
+  summarise(num_per = n())
+salud_3 <- salud %>% 
+  filter( califica_medico_general == 4) %>%
+  group_by(Excelente = califica_medico_general) %>% 
+  summarise(num_per = n())
+
+salud_1$Excelente<- gsub("4","estado de salud",salud_1$Excelente)
+salud_2$Excelente<- gsub("4","calificacion medico",salud_2$Excelente)
+salud_3$Excelente<- gsub("4","cali medico Espe",salud_3$Excelente)
+
+salud_1 <- rbind(salud_1, salud_2)
+salud_1 <- rbind(salud_1, salud_3)
+
+
+ggplot(salud_1, aes(Excelente, num_per, fill = num_per)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Frecuencia de ultimo estudio aprobado",
+       x = "estudio",
+       y = "Número de estudio") +
+  scale_fill_gradient(low = "#65B1F7", high = "red") +
+  scale_y_continuous(breaks = seq(0, 1000, 50))
+
+```
+
+```{r}
+R <- califi_salid1
+
+
+R<- scale(R)
+
+set.seed(1234)
+wss<-(nrow(R)-1)*sum(apply(R,2,var))
+for(i in 1:20) wss[i]<-sum(kmeans(R,centers = i)$withinss)
+```
+
+```{r}
+ggplot() + geom_point(aes(x = 1:20, y = wss), color = 'blue') + 
+  geom_line(aes(x = 1:20, y = wss), color = 'blue') + 
+  ggtitle("Método del Codo") + 
+  xlab('Cantidad de Centroides k') + 
+  ylab('WSS')
+```
+
+```{r}
+mycluster <- kmeans(R, 6, nstart = 5, iter.max = 3000)
+mycluster
+```
+
+
+```{r}
+fviz_cluster(object = mycluster, data = R, show.clust.cent = TRUE,
+             ellipse.type = "euclid", star.plot = TRUE, repel = TRUE) +
+  labs(title = "Resultados clustering K-means") +
+  theme_bw() +
+  theme(legend.position = "none")
+```
+
+
+
+
+
+

@@ -1,0 +1,239 @@
+---
+title: "educacion"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(rgdal)
+library(leaflet)
+library(readxl)
+library(ggplot2)
+library(modeest)
+library(fmsb)
+library(dplyr)
+```
+
+
+```{r}
+encuesta_calidad_vida <- read_delim("C:/Users/yosma/OneDrive/Desktop/analisis/encuesta_calidad_vida.csv", 
+                                    ";", escape_double = FALSE, trim_ws = TRUE)
+view(encuesta_calidad_vida)
+```
+
+
+
+```{r}
+names (encuesta_calidad_vida)[9] = "encuesta_calidad.fecha"
+```
+
+
+```{r}
+educacion <- encuesta_calidad_vida [,c("encuesta_calidad.barrio","encuesta_calidad.p_7",
+                                       "encuesta_calidad.fecha","encuesta_calidad.p_17"
+                                       ,"encuesta_calidad.p_18",
+                                       "encuesta_calidad.estrato","encuesta_calidad.p_15",
+                                       "encuesta_calidad.p_41","encuesta_calidad.p_45")]
+#hacemos el filtramiento del año
+educacion <- filter(educacion, encuesta_calidad.fecha == "2018")
+#renombramos la variables 
+names(educacion) <- c("barrio","barrio_numerica","fecha","jefe_del_hogar","edad"
+                      ,"estrato","sexo"
+                      ,"estudio_ano_anterior","ultimo_estudio_aprobado")
+summary(educacion)
+```
+
+
+```{r}
+#hacemos un filtramiento solo va hacer jefes del hogar
+educacion <- filter(educacion, jefe_del_hogar==1)
+#volvemos los valores -88 NA
+educacion$estudio_ano_anterior [(educacion$estudio_ano_anterior ==-88)]<-NA
+
+educacion$ultimo_estudio_aprobado[(educacion$ultimo_estudio_aprobado==-98) |
+                                  (educacion$ultimo_estudio_aprobado==-99) ]<-NA
+
+summary(educacion)
+```
+
+
+```{r}
+educacion <- educacion[!is.na(educacion$estudio_ano_anterior),]
+educacion <- educacion[!is.na(educacion$ultimo_estudio_aprobado),]
+summary(educacion)
+```
+
+
+```{r}
+edu_num <- educacion %>% 
+  group_by(barrio,estudio = ultimo_estudio_aprobado,estudio_ano_anterior) %>%
+  summarise(num_per = n())
+
+edu_num1 <-edu_num
+
+edu_num1 <- edu_num1[,c(-1)]
+
+rownames(edu_num1) = paste0(edu_num$barrio, 1:nrow(edu_num))
+```
+
+
+```{r}
+ggplot(edu_num, aes(estudio_ano_anterior, num_per, fill= estudio_ano_anterior)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Frecuencia estudio el año pasado",
+       x = "Estudio: (Si = 1) y (No = 2)",
+       y = "Número de estudio") +
+  scale_fill_gradient(low = "#65B1F7", high = "#132B43") +
+  scale_y_continuous(breaks = seq(0, 22000, 1000))
+```
+
+
+```{r}
+edu_num_1 <- edu_num 
+
+edu_num_1 <- filter(edu_num_1, estudio < 10)
+edu_num_1 <- filter(edu_num_1, estudio_ano_anterior == 1)
+edu_num1 <- edu_num_1
+edu_num_1$estudio<- gsub("0","Ninguno",edu_num_1$estudio)
+edu_num_1$estudio<- gsub("1","Preescolar",edu_num_1$estudio)
+edu_num_1$estudio<- gsub("2","Primaria",edu_num_1$estudio)
+edu_num_1$estudio<- gsub("3","Secundaria",edu_num_1$estudio)
+edu_num_1$estudio<- gsub("4","Normalista",edu_num_1$estudio)
+edu_num_1$estudio<- gsub("5","Media_Tecnica",edu_num_1$estudio)
+edu_num_1$estudio<- gsub("6","Tecnologico",edu_num_1$estudio)
+edu_num_1$estudio<- gsub("7","Universidad",edu_num_1$estudio)
+edu_num_1$estudio<- gsub("8","Especializacion",edu_num_1$estudio)
+edu_num_1$estudio<- gsub("9","Maestria",edu_num_1$estudio)
+edu_num_1$estudio<- gsub("10","",edu_num_1$estudio)
+
+ggplot(edu_num_1, aes(estudio, num_per, fill= edu_num1$estudio)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Frecuencia de ultimo estudio aprobado",
+       x = "Estudio",
+       y = "Número de estudio") +
+  scale_fill_gradient(low = "#65B1F7", high = "red") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 0, size = 9)) +
+  scale_y_continuous(breaks = seq(0, 50, 3))
+```
+
+```{r}
+edu_num_1 <- edu_num 
+
+edu_num_1 <- filter(edu_num_1, estudio < 10)
+edu_num1 <- edu_num_1
+edu_num_1$estudio<- gsub("0","Ninguno",edu_num_1$estudio)
+edu_num_1$estudio<- gsub("1","Preescolar",edu_num_1$estudio)
+edu_num_1$estudio<- gsub("2","Primaria",edu_num_1$estudio)
+edu_num_1$estudio<- gsub("3","Secundaria",edu_num_1$estudio)
+edu_num_1$estudio<- gsub("4","Normalista",edu_num_1$estudio)
+edu_num_1$estudio<- gsub("5","Media_Tecnica",edu_num_1$estudio)
+edu_num_1$estudio<- gsub("6","Tecnologico",edu_num_1$estudio)
+edu_num_1$estudio<- gsub("7","Universidad",edu_num_1$estudio)
+edu_num_1$estudio<- gsub("8","Especializacion",edu_num_1$estudio)
+edu_num_1$estudio<- gsub("9","Maestria",edu_num_1$estudio)
+edu_num_1$estudio<- gsub("10","",edu_num_1$estudio)
+
+ggplot(edu_num_1, aes(estudio, num_per, fill= edu_num1$estudio)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Frecuencia de ultimo estudio aprobado",
+       x = "Estudio",
+       y = "Número de estudio") +
+  scale_fill_gradient(low = "#65B1F7", high = "red") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 0, size = 9)) +
+  scale_y_continuous(breaks = seq(0, 2500, 500))
+```
+
+
+```{r}
+edu_num_1 <- edu_num 
+
+edu_num_1 <- filter(edu_num_1, estudio <= 5)
+edu_num1 <- edu_num_1
+edu_num_1$estudio<- gsub("0","Ninguno",edu_num_1$estudio)
+edu_num_1$estudio<- gsub("1","Preescolar",edu_num_1$estudio)
+edu_num_1$estudio<- gsub("2","Primaria",edu_num_1$estudio)
+edu_num_1$estudio<- gsub("3","Secundaria",edu_num_1$estudio)
+edu_num_1$estudio<- gsub("4","Normalista",edu_num_1$estudio)
+edu_num_1$estudio<- gsub("5","Media_Tecnica",edu_num_1$estudio)
+edu_num_1$estudio<- gsub("6","Tecnologico",edu_num_1$estudio)
+edu_num_1$estudio<- gsub("7","Universidad",edu_num_1$estudio)
+edu_num_1$estudio<- gsub("8","Especializacion",edu_num_1$estudio)
+edu_num_1$estudio<- gsub("9","Maestria",edu_num_1$estudio)
+edu_num_1$estudio<- gsub("10","",edu_num_1$estudio)
+
+ggplot(edu_num_1, aes(estudio, num_per, fill= edu_num1$estudio)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Frecuencia de ultimo estudio aprobado",
+       x = "Estudio",
+       y = "Número de estudio") +
+  scale_fill_gradient(low = "#65B1F7", high = "red") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 0, size = 9)) +
+  scale_y_continuous(breaks = seq(0, 2500, 500))
+```
+
+```{r}
+edu_num_1 <- edu_num 
+
+edu_num_1 <- filter(edu_num_1, estudio >= 5 & estudio < 10)
+edu_num1 <- edu_num_1
+edu_num_1$estudio<- gsub("0","Ninguno",edu_num_1$estudio)
+edu_num_1$estudio<- gsub("1","Preescolar",edu_num_1$estudio)
+edu_num_1$estudio<- gsub("2","Primaria",edu_num_1$estudio)
+edu_num_1$estudio<- gsub("3","Secundaria",edu_num_1$estudio)
+edu_num_1$estudio<- gsub("4","Normalista",edu_num_1$estudio)
+edu_num_1$estudio<- gsub("5","Media_Tecnica",edu_num_1$estudio)
+edu_num_1$estudio<- gsub("6","Tecnologico",edu_num_1$estudio)
+edu_num_1$estudio<- gsub("7","Universidad",edu_num_1$estudio)
+edu_num_1$estudio<- gsub("8","Especializacion",edu_num_1$estudio)
+edu_num_1$estudio<- gsub("9","Maestria",edu_num_1$estudio)
+edu_num_1$estudio<- gsub("10","",edu_num_1$estudio)
+
+ggplot(edu_num_1, aes(estudio, num_per, fill= edu_num1$estudio)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Frecuencia de ultimo estudio aprobado",
+       x = "Estudio",
+       y = "Número de estudio") +
+  scale_fill_gradient(low = "#65B1F7", high = "red") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 0, size = 9)) +
+  scale_y_continuous(breaks = seq(0, 2500, 500))
+```
+
+
+```{r}
+boxplot(estudio ~ estudio_ano_anterior, data = edu_num,
+        main = "Nivel de estudio tiene Vs Estudio año pasado")
+```
+
+```{r}
+R <-edu_num1
+
+R<- scale(R)
+
+set.seed(1234)
+wss<-(nrow(R)-1)*sum(apply(R,2,var))
+for(i in 1:20) wss[i]<-sum(kmeans(R,centers = i)$withinss)
+```
+
+
+```{r}
+ggplot() + geom_point(aes(x = 1:20, y = wss), color = 'blue') + 
+  geom_line(aes(x = 1:20, y = wss), color = 'blue') + 
+  ggtitle("Método del Codo") + 
+  xlab('Cantidad de Centroides k') + 
+  ylab('WSS')
+```
+
+```{r}
+mycluster <- kmeans(R, 5, nstart = 5, iter.max = 3000)
+mycluster
+```
+
+
+```{r}
+fviz_cluster(object = mycluster, data = R, show.clust.cent = TRUE,
+             ellipse.type = "euclid", star.plot = TRUE, repel = TRUE) +
+  labs(title = "Resultados clustering K-means") +
+  theme_bw() +
+  theme(legend.position = "none")
+```
+
+

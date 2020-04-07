@@ -1,0 +1,268 @@
+---
+title: "gana"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(rgdal)
+library(leaflet)
+library(readxl)
+library(ggplot2)
+library(modeest)
+library(fmsb)
+library(dplyr)
+library(cluster)
+library(factoextra)
+library(rgdal)
+library(leaflet)
+library(tidyverse)
+library(sf)
+```
+
+
+```{r}
+encuesta_calidad_vida <- read_delim("C:/Users/yosma/OneDrive/Desktop/analisis/encuesta_calidad_vida.csv", 
+                                    ";", escape_double = FALSE, trim_ws = TRUE)
+view(encuesta_calidad_vida)
+names (encuesta_calidad_vida)[9] = "encuesta_calidad.fecha"
+```
+
+```{r}
+actividades <- encuesta_calidad_vida [,c("encuesta_calidad.barrio","encuesta_calidad.p_7",
+                                       "encuesta_calidad.fecha","encuesta_calidad.p_15",
+                                       "encuesta_calidad.p_130","encuesta_calidad.p_131"
+                                       ,"encuesta_calidad.p_132","encuesta_calidad.p_133"
+                                       ,"encuesta_calidad.p_134","encuesta_calidad.p_135"
+                                       ,"encuesta_calidad.p_136","encuesta_calidad.p_137")]
+```
+
+```{r}
+actividades <- filter(actividades, encuesta_calidad.fecha == "2018")
+```
+
+
+```{r}
+names(actividades) <- c("barrio","barrio_numerica","fecha","sexo"
+                      ,"Practica_actividades_ludicas","Frecuencia_ludicas"
+                      ,"Practica_actividades_recreativas","Frecuencia_recreativas"
+                      ,"Practica_actividades_deportivas","Frecuencia_deportivas"
+                      ,"Practica_asiste_eventos_Masica","Frecuencia_eventos")
+```
+
+```{r}
+actividades <- filter(actividades,edad >= 18)
+```
+
+```{r}
+summary(actividades)
+```
+
+
+
+```{r}
+actividades$Frecuencia_ludicas[(actividades$Frecuencia_ludicas==-88) ]<-NA
+
+actividades$Frecuencia_recreativas[(actividades$Frecuencia_recreativas==-88) ]<-NA
+
+actividades$Frecuencia_deportivas[(actividades$Frecuencia_deportivas==-88) ]<-NA
+
+actividades$Frecuencia_eventos[(actividades$Frecuencia_eventos==-88) ]<-NA
+summary(actividades)
+```
+
+
+```{r}
+actividades1 <- actividades [,c("barrio","edad"
+                      ,"estrato","sexo"
+                      ,"Practica_actividades_ludicas"
+                      ,"Practica_actividades_recreativas"
+                      ,"Practica_actividades_deportivas"
+                      ,"Practica_asiste_eventos_Masica")]
+```
+
+
+```{r}
+activ <- actividades1 %>%
+  group_by(barrio,sexo,Practica_actividades_recreativas,Practica_actividades_deportivas) %>%
+  summarise(num_per = n())
+
+
+activ1 <-activ
+
+activ1 <- activ1[,c(-1)]
+
+rownames(activ1) = paste0(activ$barrio, 1:nrow(activ))
+```
+
+
+```{r}
+ggplot(activ1, aes(Practica_actividades_deportivas, num_per
+                   , fill=Practica_actividades_deportivas)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Frecuencia cuantas persona hace ejercicio",
+       x = "Hace ejercicio: (Si = 1) y (No = 2)",
+       y = "Número de estudio") +
+  scale_fill_gradient(low = "#65B1F7", high = "#132B43") +
+  scale_y_continuous(breaks = seq(0, 23000, 1000))
+```
+
+```{r}
+ggplot(activ1, aes(Practica_actividades_recreativas, num_per,
+                   fill=Practica_actividades_recreativas)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Frecuencia cuantas persona hace actividades recreativas",
+       x = "Hace actividades recreativas: (Si = 1) y (No = 2)",
+       y = "Número de estudio") +
+  scale_fill_gradient(low = "#65B1F7", high = "#132B43") +
+  scale_y_continuous(breaks = seq(0, 25000, 1000))
+```
+
+```{r}
+activ2 <- activ1
+
+activ2 <- filter(activ2, sexo == 1)
+
+ggplot(activ2, aes(Practica_actividades_recreativas, num_per,
+                   fill = Practica_actividades_recreativas)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Frecuencia cuantas Hombre hace ejercicio",
+       x = "Hace ejercicio: (Si = 1) y (No = 2)",
+       y = "Número de estudio") +
+  scale_fill_gradient(low = "#65B1F7", high = "#132B43") +
+  scale_y_continuous(breaks = seq(0, 25000, 1000))
+
+```
+
+```{r}
+ggplot(activ2, aes(Practica_actividades_deportivas, num_per,
+                   fill= Practica_actividades_deportivas)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Frecuencia Frecuencia cuantas Hombre hace actividades recreativas",
+       x = "Hace actividades recreativas: (Si = 1) y (No = 2)",
+       y = "Número de estudio") +
+  scale_fill_gradient(low = "#65B1F7", high = "#132B43") +
+  scale_y_continuous(breaks = seq(0, 25000, 1000))
+```
+
+```{r}
+activ3 <- activ1
+
+activ3 <- filter(activ3, sexo == 2)
+
+ggplot(activ3, aes(Practica_actividades_deportivas, num_per,
+                   fill = Practica_actividades_deportivas)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Frecuencia cuantas Mujer hace ejercicio",
+       x = "Hace ejercicio: (Si = 1) y (No = 2)",
+       y = "Número de estudio") +
+  scale_fill_gradient(low = "#65B1F7", high = "#132B43") +
+  scale_y_continuous(breaks = seq(0, 25000, 1000))
+
+```
+
+```{r}
+ggplot(activ3, aes(Practica_actividades_recreativas, num_per,
+                   fill= Practica_actividades_recreativas)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Frecuencia Frecuencia cuantas Mujer hace actividades recreativas",
+       x = "Hace actividades recreativas: (Si = 1) y (No = 2)",
+       y = "Número de estudio") +
+  scale_fill_gradient(low = "#65B1F7", high = "#132B43") +
+  scale_y_continuous(breaks = seq(0, 25000, 1000))
+```
+
+```{r}
+
+```
+
+
+```{r}
+activ_H <- activ2
+
+activ_H <- filter(activ_H, Practica_actividades_deportivas == 1)
+
+activ_H <- colSums(activ_H[,c(4)])
+activ_H
+```
+
+```{r}
+activ_M <- activ3
+
+activ_M <- filter(activ_M, Practica_actividades_deportivas == 1)
+
+activ_M <- colSums(activ_M[,c(4)])
+activ_M
+```
+
+
+```{r}
+activ <- actividades1 %>%
+  group_by(barrioPractica_asiste_eventos_Masica) %>%
+  summarise(num_per = n())
+```
+
+```{r}
+activ <- actividades1 %>%
+  group_by(barrio,Practica_actividades_deportivas) %>%
+  summarise(num_per = n())
+```
+
+```{r}
+activ <- actividades1 %>%
+  group_by(barrio,Practica_actividades_recreativas) %>%
+  summarise(num_per = n())
+```
+
+
+```{r}
+activ <- filter(activ, Practica_actividades_ludicas ==1 & 
+                  Practica_actividades_recreativas ==1 & 
+                  Practica_actividades_deportivas ==1 & 
+                  Practica_asiste_eventos_Masica ==1 )
+```
+
+
+```{r}
+
+actividades <- actividades[!is.na(actividades$Frecuencia_deportivas),]
+actividades <- actividades[!is.na(actividades$Frecuencia_recreativas),]
+actividades <- actividades[!is.na(actividades$Frecuencia_eventos),]
+actividades <- actividades[!is.na(actividades$Frecuencia_ludicas),]
+```
+
+
+```{r}
+R <-activ1
+
+
+R<- scale(R)
+
+set.seed(1234)
+wss<-(nrow(R)-1)*sum(apply(R,2,var))
+for(i in 1:20) wss[i]<-sum(kmeans(R,centers = i)$withinss)
+```
+
+
+```{r}
+ggplot() + geom_point(aes(x = 1:20, y = wss), color = 'blue') + 
+  geom_line(aes(x = 1:20, y = wss), color = 'blue') + 
+  ggtitle("Método del Codo") + 
+  xlab('Cantidad de Centroides k') + 
+  ylab('WSS')
+```
+
+```{r}
+mycluster <- kmeans(R, 5, nstart = 5, iter.max = 5000)
+mycluster
+```
+
+
+```{r}
+fviz_cluster(object = mycluster, data = R, show.clust.cent = TRUE,
+             ellipse.type = "euclid", star.plot = TRUE, repel = TRUE) +
+  labs(title = "Resultados clustering K-means") +
+  theme_bw() +
+  theme(legend.position = "none")
+```
+
+

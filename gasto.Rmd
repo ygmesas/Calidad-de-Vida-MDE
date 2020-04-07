@@ -1,0 +1,332 @@
+---
+title: "gasto"
+output: html_document
+---
+
+#el esta parte vamos a exportar todas las librerias que necesitemos para el trabajo.
+
+```{r, include=FALSE}
+library(rgdal)
+library(leaflet)
+library(readxl)
+library(ggplot2)
+library(modeest)
+library(fmsb)
+library(dplyr)
+library(cluster)
+library(factoextra)
+library(rgdal)
+library(leaflet)
+library(tidyverse)
+library(sf)
+library(stringr)
+library(rgeos)
+library(plotly)
+```
+
+#el esta parte vamos a traer la base de datos de encuestados
+
+```{r }
+encuesta_calidad_vida <- read_delim("C:/Users/yosma/OneDrive/Desktop/analisis/encuesta_calidad_vida.csv", 
+                                    ";", escape_double = FALSE, trim_ws = TRUE)
+view(encuesta_calidad_vida)
+names (encuesta_calidad_vida)[9] = "encuesta_calidad.fecha"
+```
+
+```{r}
+write_csv(gasto_mensual, path = "../analisis/gasto_mensual.csv", col_names = TRUE)
+```
+
+
+```{r}
+barrios_med=readOGR("C:/Users/yosma/OneDrive/Desktop/analisis/Barrio_Vereda.shp",layer="Barrio_Vereda")
+```
+
+---------------------------------------------GASTOS EN EL HOGAR -----------------------------------------
+
+
+#Vamos a empezar seleccionar varias dimensiones, la primera va hacer educacion con las variables.
+
+P_6: Comunas de Medellin
+
+p_7:Codigo del barrio o vereda
+
+p_15:sexo
+
+P_18:Años cumplidos
+
+p_232:A cuanto asciende el total de gastos mensuales de este hogar?
+
+p_233:cual cantidad del ingreso mensual destina este hogar a: Pensiones escolares
+
+p_234:cual cantidad del ingreso mensual destina este hogar a: Transporte escolar
+
+p_235:cual cantidad del ingreso mensual destina este hogar a: Alimentos
+
+p_236:cual cantidad del ingreso mensual destina este hogar a: Bebidas y tabaco
+
+p_237:cual cantidad del ingreso mensual destina este hogar a: Combustibles
+
+p_238:cual cantidad del ingreso mensual destina este hogar a: Servicios medicos
+
+p_239:cual cantidad del ingreso mensual destina este hogar a: Medicamentos
+
+p_240:cual cantidad del ingreso mensual destina este hogar a: Servicios Publicos
+
+p_241:cual cantidad del ingreso mensual destina este hogar a: Transporte y comunicaciones
+
+p_242:cual cantidad del ingreso mensual destina este hogar a: Esparcimiento y diversiones
+
+p_243:cual cantidad del ingreso mensual destina este hogar a: InterÃ©ses y otros gastos financieros
+
+p_244:Cantidad del ingreso total mensual destinado por el hogar
+
+
+```{r cars}
+gastos <- encuesta_calidad_vida [,c("encuesta_calidad.barrio","encuesta_calidad.p_7"
+  ,"encuesta_calidad.estrato"
+  ,"encuesta_calidad.fecha"
+  , "encuesta_calidad.p_232"
+  ,"encuesta_calidad.p_234","encuesta_calidad.p_235","encuesta_calidad.p_237"
+  ,"encuesta_calidad.p_240","encuesta_calidad.p_241"
+  ,"encuesta_calidad.p_242","encuesta_calidad.p_244")]
+gastos <- filter(gastos, encuesta_calidad.fecha == "2018")
+```
+
+#renombrar las variables para entendera mejor
+
+```{r}
+names(gastos) <- c("barrio","barrio_numerica","estrato"
+                      ,"fecha","gastos_mensuales_hogar"
+                      ,"ingreso_hogar_Transporte_escolar"
+                      ,"ingreso_hogar_Alimentos",
+                      "ingreso_hogar_Combustibles","ingreso_hogar_Servicios_Publicos"
+                      ,"ingreso_hogar_Transporte","ingreso_hogar_Esparcimiento"
+                      ,"ingreso_hogar")
+summary(gastos)
+```
+
+
+```{r}
+gastos$gastos_mensuales_hogar[(gastos$gastos_mensuales_hogar==-98)|
+                                  (gastos$gastos_mensuales_hogar==-99) ]<-NA
+
+
+gastos$ingreso_hogar_Transporte_escolar [(gastos$ingreso_hogar_Transporte_escolar ==-98)|
+                                  (gastos$ingreso_hogar_Transporte_escolar ==-99)|
+                                  (gastos$ingreso_hogar_Transporte_escolar ==99999999) ]<-NA  
+
+gastos$ingreso_hogar_Alimentos[(gastos$ingreso_hogar_Alimentos==-98)|
+                                  (gastos$ingreso_hogar_Alimentos==-99) ]<-NA
+
+
+gastos$ingreso_hogar_Combustibles [(gastos$ingreso_hogar_Combustibles ==-88) |
+                                          (gastos$ingreso_hogar_Combustibles ==-98)|
+                                  (gastos$ingreso_hogar_Combustibles ==-99) ]<-NA
+
+gastos$ingreso_hogar_Servicios_Publicos [(gastos$ingreso_hogar_Servicios_Publicos ==-98)|
+                                  (gastos$ingreso_hogar_Servicios_Publicos ==-99) ]<-NA
+
+gastos$ingreso_hogar_Transporte [(gastos$ingreso_hogar_Transporte ==-98)|
+                                  (gastos$ingreso_hogar_Transporte ==-99) ]<-NA
+
+gastos$ingreso_hogar_Esparcimiento[(gastos$ingreso_hogar_Esparcimiento  ==-98)|
+                                  (gastos$ingreso_hogar_Esparcimiento  ==-99) ]<-NA
+
+
+gastos$ingreso_hogar[(gastos$ingreso_hogar ==-98)|
+                        (gastos$ingreso_hogar==-99)|
+                        (gastos$ingreso_hogar==-1089)|
+                        (gastos$ingreso_hogar==-792)|
+                        (gastos$ingreso_hogar==-784)|
+                        (gastos$ingreso_hogar==-297)|
+                        (gastos$ingreso_hogar==-296)|
+                        (gastos$ingreso_hogar==-295)|
+                        (gastos$ingreso_hogar==-294)|
+                        (gastos$ingreso_hogar==-198)|
+                        (gastos$ingreso_hogar==-197)|
+                        (gastos$ingreso_hogar==-196) ]<-NA
+
+summary(gastos)
+```
+
+
+
+```{r}
+gastos <- gastos[!is.na(gastos$gastos_mensuales_hogar),]
+gastos <- gastos[!is.na(gastos$ingreso_hogar_Transporte_escolar),]
+gastos <- gastos[!is.na(gastos$ingreso_hogar_Alimentos),]
+gastos <- gastos[!is.na(gastos$ingreso_hogar_Combustibles),]
+gastos <- gastos[!is.na(gastos$ingreso_hogar_Servicios_Publicos),]
+gastos <- gastos[!is.na(gastos$ingreso_hogar_Transporte),]
+gastos <- gastos[!is.na(gastos$ingreso_hogar_Esparcimiento ),]
+gastos <- gastos[!is.na(gastos$ingreso_hogar),]
+summary(gastos)
+```
+
+
+```{r}
+gasto_mensual <- gastos %>%
+  group_by(barrio) %>%
+  summarise(gasto = mean(gastos_mensuales_hogar),ingreso = mean(ingreso_hogar),
+            Transporte = mean(ingreso_hogar_Transporte),
+            servicio_public = mean(ingreso_hogar_Servicios_Publicos))
+
+
+gasto_mensual1 <-gasto_mensual
+
+
+gasto_mensual1 <- gasto_mensual1[,c(-1)]
+
+rownames(gasto_mensual1) <- c(gasto_mensual$barrio)
+```
+
+
+```{r}
+pairs(gasto_mensual[,c("gasto","ingreso","Transporte",
+                 "servicio_public")],  
+      col = c("firebrick", "green3"),)
+```
+
+```{r}
+ggplot(data = gasto_mensual, aes(x = gasto)) +
+     geom_histogram(fill = "steelblue") +
+     labs(title = "Distribución del gasto de las vivienda",
+          x = "gasto") +
+     theme_bw() +
+     theme(plot.title = element_text(face = "bold"))
+```
+
+```{r}
+ggplot(data = gasto_mensual, aes(x = ingreso)) +
+     geom_histogram(fill = "steelblue") +
+     labs(title = "Distribución del ingrso de las vivienda",
+          x = "ingreso") +
+     theme_bw() +
+     theme(plot.title = element_text(face = "bold"))
+```
+
+
+```{r}
+ggplot(data = gasto_mensual, aes(x = Transporte)) +
+     geom_histogram(fill = "steelblue") +
+     labs(title = "Distribución del gasto de las trasporte",
+          x = "trasporte") +
+     theme_bw() +
+     theme(plot.title = element_text(face = "bold"))
+```
+
+```{r}
+ggplot(data = gasto_mensual, aes(x = servicio_public)) +
+     geom_histogram(fill = "steelblue") +
+     labs(title = "Distribución del valor de servicio publicos",
+          x = "servicio publico") +
+     theme_bw() +
+     theme(plot.title = element_text(face = "bold"))
+```
+
+
+```{r}
+R <-gasto_mensual1
+
+R<- scale(R)
+
+set.seed(1234)
+wss<-(nrow(R)-1)*sum(apply(R,2,var))
+for(i in 1:20) wss[i]<-sum(kmeans(R,centers = i)$withinss)
+```
+
+
+```{r}
+ggplot() + geom_point(aes(x = 1:20, y = wss), color = 'blue') + 
+  geom_line(aes(x = 1:20, y = wss), color = 'blue') + 
+  ggtitle("Método del Codo") + 
+  xlab('Cantidad de Centroides k') + 
+  ylab('WSS')
+```
+
+```{r}
+mycluster <- kmeans(R, 5, nstart = 5, iter.max = 3000)
+mycluster
+```
+
+```{r}
+plot(R[,1:2],col=mycluster$cluster+1)
+```
+
+```{r}
+fviz_cluster(object = mycluster, data = R, show.clust.cent = TRUE,
+             ellipse.type = "euclid", star.plot = TRUE, repel = TRUE) +
+  labs(title = "Resultados clustering K-means") +
+  theme_bw() +
+  theme(legend.position = "none")
+
+```
+
+
+
+```{r}
+nombres_barrios=iconv(barrios_med@data$NOMBRE,"UTF-8","ISO_8859-1")
+```
+
+```{r}
+info_barrio <- barrios_med@data
+info_barrio %>% head()
+```
+
+```{r}
+info_barrio %>%
+ggplot(aes(x = SHAPEAREA, y = SHAPELEN, group = OBJECTID)) +
+  geom_polygon(color = "gray20", fill = "white") + 
+  coord_map("mercator") +
+  theme_bw() +
+  theme(
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks =  element_blank(),
+    axis.title = element_blank(),
+    panel.border = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()
+  )
+```
+
+
+
+```{r}
+info_mede <- 
+```
+
+
+```{r}
+m=leaflet(barrios_med)
+m=addTiles(m)
+m=addPolygons(m,popup=nombres_barrios )
+m=addTiles(m)
+m
+```
+
+
+
+```{r}
+colores=sample(x=c("orange","green","yellow"),size=length(gasto_mensual$gasto),replace=TRUE)
+
+pal <- colorBin("YlOrRd", domain = barrios_med@data$SHAPEAREA, bins = gasto_mensual$gasto)
+```
+
+```{r}
+m=addPolygons(m,popup=nombres_barrios,
+              fillColor = gasto_mensual$gastos,
+  weight = 2,
+  opacity = 1,
+  color = "white",
+  dashArray = "3",
+  fillOpacity = 0.7)
+
+m=addPolygons(m,popup=nombres_barrios,
+              fill = gasto_mensual$gastos)
+
+
+m
+```
+
